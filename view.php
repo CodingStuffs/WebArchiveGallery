@@ -13,19 +13,29 @@ session_start();
 
 // no query parameters means let user pick which archive to work with
 if( count($_GET) == 0 ) {
+	// call this once for the whole directory and parse the results
+	exec("ls $rootPath" . DIRECTORY_SEPARATOR . "*.*", $potentials); // TODO add windows support
+	
+	// archives that we know what to do with will end up here
 	$archives = array();
-	foreach($archiveTypes as $archKind) {
-		foreach($archKind->ext as $ext) {
-			$archPath = array(); // reset so exec doesn't keep appending
-			exec("ls $rootPath" . DIRECTORY_SEPARATOR . "*.$ext", $archPath); // TODO add windows support
-			foreach($archPath as $curArchPath) {
-				$archives[] = (object)array(
-					'path' => '"' . $curArchPath .'"',
-					'name' => basename($curArchPath),
-					'kind' => $archKind,
-					'index' => count($archives),
-					'items' => array()
-				);
+
+	foreach($potentials as $potential) {
+		// figure out which extension we are looking at
+		$curExt = strtolower(pathinfo($potential, PATHINFO_EXTENSION));
+
+		// see if it matches any known archive types
+		foreach($archiveTypes as $archKind) {
+			foreach($archKind->ext as $ext) {
+				if($curExt == $ext) {
+					$archives[] = (object)array(
+						'path' => '"' . $potential .'"',
+						'name' => basename($potential),
+						'kind' => $archKind,
+						'index' => count($archives),
+						'items' => array()
+					);
+					break 2; // jump out of both inner loops, we are done with this potential
+				}
 			}
 		}
 	}
