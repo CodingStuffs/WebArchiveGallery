@@ -110,27 +110,88 @@ function endsWith($haystack, $needle)
 }
 
 function drawPage_Error($message) {
-	echo $message;
+	echo "ERROR: $message";
 }
 
 function drawPage_ArchiveList($archives) {
-	$archiveCount = count($archives);
-	echo "Found $archiveCount items<br />\n";
-	$curIndex = 0;
-	foreach($archives as $file) {
-		$htmlFile = htmlentities($file->name);
-		echo "<a href='?archive=$curIndex&doList'>$htmlFile</a><br />\n";
-		++$curIndex;
-	}
+	?>
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<meta http-equiv="X-UA-Compatible" content="IE=10">
+			<style>
+			html, body {
+				margin: 0px;
+				padding: 0px;
+				width: 100%;
+				height: 100%;
+				font: 1.4em verdana;
+				word-wrap: break-word;
+			}
+			a {
+				text-align: center;
+				display: block;
+				background: lightgray;
+				width: 100%;
+			}
+			</style>
+			<title>Pick Archive</title>
+		</head>
+		<body>
+		<center>There are <?php echo count($archives); ?> recognized archives:</center><br />
+		<?php
+		$curIndex = 0;
+		foreach($archives as $file) {
+			$htmlFile = htmlentities($file->name);
+			echo "<a href='?archive=$curIndex&doList'>$htmlFile</a><br />\n";
+			++$curIndex;
+		}
+		?>
+		</body>
+	</html>
+	<?php
 }
 
 function drawPage_ArchiveItems($archive) {
-	$index = 0;
-	foreach($archive->items as $item) {
-		$htmlItem = htmlentities($item);
-		echo "<a href='?archive=$archive->index&item=$index&doView'>$htmlItem</a><br />\n";
-		++$index;
-	}
+	?>
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<meta http-equiv="X-UA-Compatible" content="IE=10">
+			<style>
+			html, body {
+				margin: 0px;
+				padding: 0px;
+				width: 100%;
+				height: 100%;
+				font: 1.4em verdana;
+			}
+			a {
+				text-align: center;
+				display: block;
+				background: lightgray;
+				width: 100%;
+			}
+			</style>
+			<title>Pick Image</title>
+		</head>
+		<body>
+			<center>
+				There are <?php echo count($archive->items); ?> items in archive
+				<small><small><br />Choose which one to start with</small></small>
+			</center>
+			<br />
+			<?php
+			$index = 0;
+			foreach($archive->items as $item) {
+				$htmlItem = htmlentities($item);
+				echo "<a href='?archive=$archive->index&item=$index&doView'>$htmlItem</a><br />\n";
+				++$index;
+			}
+			?>
+		</body>
+	</html>
+	<?php
 }
 
 function drawPage_ItemView($archive, $itemIndex) {
