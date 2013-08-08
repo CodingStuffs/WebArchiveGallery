@@ -67,8 +67,8 @@ if( count($_GET) == 0 ) {
 			
 			// make sure it did indeed come from archive
 			// TODO: quotes inside archive names will probably break stuff, should fix it here
-			if( !in_array($itemName, $_SESSION[$fullPath]) ) {
-				die("error: invalid file name [$htmlItemName] for archive [$htmlFullPath]");
+			if( !is_array($_SESSION[$fullPath]) || !in_array($itemName, $_SESSION[$fullPath]) ) {
+				die("error: invalid file name [$htmlItemName] for archive [$htmlFullPath], <a href='?'>start from beginning</a>");
 			}
 			
 			if( !isset($_GET['doView']) ) {
@@ -88,75 +88,88 @@ if( count($_GET) == 0 ) {
 				
 				die();
 			} else {
-				$next = '';
-				$prev = '';
+				// first figure which image we clicked on
+				$currentIndex = 0;
 				foreach($items as $item) {
-					if($next == $itemName) {
-						$next = $item;
-						break;
-					}
-					
 					if($item == $itemName) {
-						$next = $item;
+						break;
 					} else {
-						$prev = $item;
+						++$currentIndex;
 					}
 				}
-				if($next == $itemName) {
-					$next = $items[0];
-				}
-				if($prev == '') {
-					$prev = $items[count($items)-1];
-				}
-				
-				$safeFileName = urlencode($archiveName);
-				$safeItemName = urlencode($itemName);
-				$safeNextName = urlencode($next);
-				$safePrevName = urlencode($prev);
 
-				$currURL = "?archive=$safeFileName&item=$safeItemName";
-				$nextURL = "?archive=$safeFileName&item=$safeNextName&doView";
-				$prevURL = "?archive=$safeFileName&item=$safePrevName&doView";
+				$safeFileName = htmlentities($archiveName);
+				$baseURL = "{$_SERVER[SCRIPT_NAME]}?archive=$safeFileName&item=";
+				$imagePaths = json_encode($items);
 				
 				$htmlItemName = htmlentities($itemName);
 				?>
+				<!DOCTYPE html>
 				<html>
 					<head>
+						<meta http-equiv="X-UA-Compatible" content="IE=10">
 						<style>
-						html { 
-							background: url(<?php echo $currURL; ?>) no-repeat center center fixed;
-							-webkit-background-size: contain;
-							-moz-background-size: contain;
-							-o-background-size: contain;
-							background-size: contain;
-						}
-						body {
+						html, body {
 							margin: 0px;
 							padding: 0px;
 							width: 100%;
 							height: 100%;
 						}
-						div.prev {
+						img.view {
 							margin: 0px;
 							padding: 0px;
-							width:50%;
-							height:100%;
-							float:left;
-						}
-						
-						div.next {
-							margin: 0px;
-							padding: 0px;
-							width:50%;
-							height:100%;
-							float:right;
+							width: 100%;
+							cursor: pointer;
+							display: none;
+							visibility: visible;
 						}
 						</style>
 						<title><?php echo $htmlItemName; ?></title>
 					</head>
-					<body>
-						<div onClick="location.href='<?php echo $prevURL; ?>'" class="prev">&nbsp;</div>
-						<div onClick="location.href='<?php echo $nextURL; ?>'" class="next">&nbsp;</div>
+					<body onLoad="showInitialImage()">
+						<script language="javascript">
+						var baseURL = '<?php echo $baseURL; ?>';
+						var imagePaths = <?php echo $imagePaths; ?>;
+						var imageCount = imagePaths.length;
+						var curIndex = <?php echo $currentIndex; ?>;
+
+						function showNextImage(lastView, currViewId, nextViewId) {
+							console.log('showNextImage '+lastView.id+' '+currViewId+' '+nextViewId);
+
+							curIndex = (curIndex + 1) % imageCount; // update global counter
+							
+							document.title = imagePaths[curIndex];
+
+							var nextIndex = (curIndex + 1) % imageCount; // used locally to preload next
+
+							var currView = document.getElementById(currViewId);
+							var nextView = document.getElementById(nextViewId);
+							
+							lastView.style.display = 'none';
+							lastView.src = 'transparent.gif'; // http://engineering.linkedin.com/linkedin-ipad-5-techniques-smooth-infinite-scrolling-html5
+							
+							currView.style.display = 'inline'; // should already be loaded
+							console.log(currView.style.display +' '+ currView.style.visibility +' '+ currView.src);
+
+							nextView.style.display = 'none';
+							nextView.src = baseURL + imagePaths[nextIndex];
+						}
+
+						function showInitialImage() {
+							// begin loading first image into view A
+							var viewA = document.getElementById('viewA');
+							viewA.src = baseURL + imagePaths[curIndex];
+
+							// will set this one to transparent
+							var viewC = document.getElementById('viewC');
+							
+							--curIndex; // nextImage will up this back to where it should be for initial run
+							showNextImage(viewC, 'viewA', 'viewB'); // "free up" C, show A, load next image into B
+						}
+						</script>
+						<img id="viewA" class="view" onClick="showNextImage(this, 'viewB', 'viewC')" />
+						<img id="viewB" class="view" onClick="showNextImage(this, 'viewC', 'viewA')" />
+						<img id="viewC" class="view" onClick="showNextImage(this, 'viewA', 'viewB')" />
 					</body>
 				</html>
 				<?php
